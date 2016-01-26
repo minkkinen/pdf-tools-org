@@ -79,7 +79,7 @@ need region."
            (insert (concat "\n\n" (pdf-annot-get annot 'contents)))
            ;; set org properties for each of the remaining fields
            (mapcar
-            '(lambda (field) ;; traverse all fields
+            #'(lambda (field) ;; traverse all fields
                (when (member (car field) pdf-tools-org-exportable-properties)
                  (org-set-property (symbol-name (car field))
                                    (format "%s" (cdr field)))))
@@ -90,6 +90,33 @@ need region."
        )
       (org-set-tags 1)
       (write-file filename pdf-tools-org-export-confirm-overwrite))))
+
+(defun pdf-tools-org-export-to-org-heading ()
+  "Export annotations to an Org heading."
+  (interactive)
+  (let ((annots (sort (pdf-annot-getannots) 'pdf-annot-compare-annotations))
+        (key (format "%s"
+		     (file-name-sans-extension
+		      (buffer-name))))
+        (buffer (current-buffer)))
+    (with-current-buffer "*scratch*"
+;;      (org-ref-open-notes-at-point key)
+;;    (search-forward ":END:")
+      (mapc
+       (lambda (annot) ;; traverse all annotations
+	 (progn
+	   ;; insert text from marked-up region to an org mode list
+	   (if (pdf-annot-get annot 'markup-edges)
+	       (insert (concat "- "
+			       (with-current-buffer buffer
+				 (pdf-info-gettext (pdf-annot-get annot 'page)
+						   (pdf-tools-org-edges-to-region
+						    (pdf-annot-get annot 'markup-edges))))
+			       "\n"))
+	     (insert (concat "- ~" (pdf-annot-get annot 'contents) "~\n")))))
+       (cl-remove-if
+	(lambda (annot) (member (pdf-annot-get-type annot) pdf-tools-org-non-exportable-types))
+	annots)))))
 
 (defun pdf-tools-org-import-from-org (orgfile)
   "Import annotations from an Org file."
