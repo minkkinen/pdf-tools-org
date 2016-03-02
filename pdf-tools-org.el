@@ -106,13 +106,19 @@ need region."
        (lambda (annot) ;; traverse all annotations
 	 (progn
 	   ;; insert text from marked-up region to an org mode list
+	   ;; TODO add page numbers, see: http://matt.hackinghistory.ca/2015/11/11/note-taking-with-pdf-tools/
 	   (if (pdf-annot-get annot 'markup-edges)
-	       (insert (concat "- "
-			       (with-current-buffer buffer
-				 (pdf-info-gettext (pdf-annot-get annot 'page)
-						   (pdf-tools-org-edges-to-region
-						    (pdf-annot-get annot 'markup-edges))))
-			       "\n"))
+	       (progn
+		 (insert (concat "- " (number-to-string (pdf-annot-get annot 'page)) " "
+				 (with-current-buffer buffer
+				   (replace-regexp-in-string "\n" " "
+							     (replace-regexp-in-string "-\n" ""
+										       (pdf-info-gettext (pdf-annot-get annot 'page)
+													 (pdf-tools-org-edges-to-region
+													  (pdf-annot-get annot 'markup-edges))))))
+				 "\n"))
+		 (when (not (string= (pdf-annot-get annot 'contents) ""))
+		   (insert (concat "   - ~" (pdf-annot-get annot 'contents) "~\n"))))
 	     (insert (concat "- ~" (pdf-annot-get annot 'contents) "~\n")))))
        (cl-remove-if
 	(lambda (annot) (member (pdf-annot-get-type annot) pdf-tools-org-non-exportable-types))
